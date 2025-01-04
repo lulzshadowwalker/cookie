@@ -1,5 +1,5 @@
 require 'character'
-local anim8 = require 'animate'
+local animate = require 'animate'
 local createAnimations = require 'create_animations'
 
 --  NOTE: I think I would rather have simple characters and then controllers which control these characters forming i.e. a player 
@@ -12,26 +12,39 @@ function Player:new(x, y)
   Player.super.new(self, x, y, 'assets/boy/sprite.png')
 
   --  NOTE: Cleanup and move some things into the character class
-  self.grid = anim8.newGrid(48, 64, self.w, self.h)
+  self.grid = animate.newGrid(48, 64, self.w, self.h)
 
-  self.animations = createAnimations(self.grid, {'walk', 'idle', 'dash', 'dead:pauseAtEnd'}, {'down', 'downLeft', 'upLeft', 'up', 'upRight', 'downRight'})
-  self.animations.walk.left = self.animations.walk.downLeft
-  self.animations.walk.right = self.animations.walk.downRight
-  self.animations.idle.left = self.animations.idle.downLeft
-  self.animations.idle.right = self.animations.idle.downRight
-  self.animations.dead.left = self.animations.dead.downLeft
-  self.animations.dead.right = self.animations.dead.downRight
+  self.animations = createAnimations(self.grid, 
+    { 
+      idle = { 'none', 'gun', 'spear' }, 
+      walk = { 'none', 'gun', 'spear' },
+      run = { 'none', 'gun', 'spear' },
+      reload = { 'gun' },
+      attack = { 'gun', 'spear' },
+      ['dead:pauseAtEnd:0.14'] = { 'none', 'gun', 'spear' },
+    }, 
+    { 'down', 'downLeft', 'upLeft', 'up', 'upRight', 'downRight', 'left', 'right' },
+    { 'idle', 'walk', 'run', 'reload', 'attack', 'dead:pauseAtEnd:0.14' }
+  )
 
-  self.animation = self.animations.dead.down
+  --   TODO: Double check corner attack animations
+  --  NOTE: For some reason they are flipped not sure why that is.
+  self.animations.gun.attack.right, self.animations.gun.attack.left = self.animations.gun.attack.left, self.animations.gun.attack.right
+  self.animations.spear.attack.right, self.animations.spear.attack.left = self.animations.spear.attack.left, self.animations.spear.attack.right
+
+  self.animation = self.animations.none.idle.down
   self.scale = 4
   self.direction = { x = 0, y = 0 }
   self.facing = 'down'
-  self.dashing = false
+  self.running = false
   self.dead = false
+  self.attacking = false
+  self.weapon = 'none'
 end
 
 function Player:update(dt)
-  self.animation = self.animations[self:getState()][self.facing]
+  self.animation = self.animations[self.weapon][self:getState()][self.facing]
+  self.animation = self.animations.gun.attack.right
   self.animation:update(dt)
   self:move(dt)
 end
@@ -41,7 +54,7 @@ function Player:draw()
 end
 
 function Player:move(dt)
-  if self.dead then
+  if self.dead or self.attacking then
     return
   end
 
@@ -59,13 +72,11 @@ function Player:move(dt)
       dx = 1
   end
 
-  -- Normalize to prevent faster diagonal movement
   local length = math.sqrt(dx * dx + dy * dy)
   if length > 0 then
       dx, dy = dx / length, dy / length
   end
 
-  -- Set direction and move
   self.direction.x = dx
   self.direction.y = dy
 
@@ -100,11 +111,21 @@ function Player:getFacing()
   end
 end
 
+-- idle:                      normal, gun, spear
+-- walk:                      normal, gun, spear
+-- run:                       normal, gun, spear
+-- reload:                            gun
+-- attack:                            gun, spear
+-- death:                     normal, gun, spear
 function Player:getState()
-    if self.dead then
+    if self.attacking then
+        return 'attack'
+    elseif self.dead then
         return 'dead'
-    elseif self.dashing then
-        return 'dash'
+    -- elseif self.running and self.reloading then
+    --     return 'run-reload' 
+    elseif self.running then
+        return 'run'
     elseif self.direction.x == 0 and self.direction.y == 0 then
         return 'idle'
     else
@@ -113,13 +134,45 @@ function Player:getState()
 end
 
 function Player:keypressed(key)
-  -- if key == 'space' then
-  --   self.dashing = true 
-  -- else 
-  --   self.dashing = false
-  -- end
+  if key == 'space' then
+    self.running = true 
+  end
 
   if key == 'z' then
     self.dead = true
+  end
+
+  if key == 'x' then
+    -- if self.weapon == 'gun' then
+    --   self.animation = self.animations.gun.reload.down
+    -- end
+
+    if self.weapon == 'none' then
+      print('No weapon selected')
+    else
+      self.attacking = true
+    end
+  end
+end
+
+function Player:keyreleased(key)
+  if key == 'space' then
+    self.running = false
+  end
+
+  if key == 'z' then
+    self.dead = false
+  end
+
+  if key == 'x' then
+    self.attacking = false
+  end
+
+  if key == '1' then
+    self.weapon = 'none'
+  elseif key == '2' then
+    self.weapon = 'gun'
+  elseif key == '3' then
+    self.weapon = 'spear'
   end
 end

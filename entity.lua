@@ -18,3 +18,7 @@ end
 function Entity:keypressed(key)
   --
 end
+
+function Entity:keyreleased(key)
+  --
+end

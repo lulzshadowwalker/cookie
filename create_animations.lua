@@ -1,17 +1,28 @@
 local animate = require 'animate'
 
-local function createAnimations(grid, states, facing) 
+local function createAnimations(grid, states, facing, order)
     local animations = {}
 
-    for i, state in ipairs(states) do
-        local s, onLoop = state:match('(%a+):(%a+)')
-        onLoop = onLoop or function() end
-        state = s or state
+    local counter = 0
+    for i, order in ipairs(order) do
+        for j, weapon in ipairs(states[order]) do
+            local state = order
+            local s, onLoop, interval = state:match('^([^:]+):?([^:]*):?(.*)$')
 
-        animations[state] = {}
-        local offset = (i - 1) * #facing
-        for j, facing in ipairs(facing) do
-            animations[state][facing] = animate.newAnimation(grid('1-8', offset + j), 0.1, onLoop)
+            s = s ~= '' and s or nil
+            onLoop = onLoop ~= '' and onLoop or function() end
+            interval = tonumber(interval) or 0.1
+            state = s or state
+
+            animations[weapon] = animations[weapon] or {}
+
+            local offset = counter * #facing
+            animations[weapon][state] = {}
+            for j, dir in ipairs(facing) do
+                animations[weapon][state][dir] = animate.newAnimation(grid('1-8', j + offset), interval, onLoop)
+            end
+
+            counter = counter + 1
         end
     end
 

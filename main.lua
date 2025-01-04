@@ -16,11 +16,15 @@ function love.draw()
 end
 
 function love.keypressed(key)
+  player:keypressed(key)
+end
+
+function love.keyreleased(key)
   if key == 'escape' then
     love.event.quit()
   elseif key == 'r' then
     love.event.quit('restart')  
   end
 
-  player:keypressed(key)
+  player:keyreleased(key)
 end
