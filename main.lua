@@ -23,7 +23,7 @@ function love.keyreleased(key)
   if key == 'escape' then
     love.event.quit()
   elseif key == 'r' then
-    love.event.quit('restart')  
+    love.event.quit('restart')
   end
 
   player:keyreleased(key)
