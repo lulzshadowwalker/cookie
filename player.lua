@@ -208,9 +208,15 @@ function Player:keypressed(key)
 		if self.weapon == "none" then
 			print("No weapon selected")
 		else
-			if self.weapon == "gun" and self:outOfAmmo() then
-				print("Out of ammo")
-				return
+			if self.weapon == "gun" then
+        if self.reloading then
+          return
+        end
+
+				if self:outOfAmmo() then
+					print("Out of ammo")
+					return
+				end
 			end
 
 			self.attacking = true
@@ -255,6 +261,10 @@ function Player:attack(dt)
 end
 
 function Player:shoot(dt)
+	if self.reloading then
+		return
+	end
+
 	gunshot.timer = gunshot.timer + dt
 	if gunshot.timer >= gunshot.firerate then
 		if self.ammo <= 0 then
@@ -289,6 +299,7 @@ function Player:completeReload()
 	self.extraAmmo = self.extraAmmo - reloadableAmmo
 
 	self.reloading = false
+	gunshot.timer = gunshot.firerate
 end
 
 function Player:outOfAmmo()
